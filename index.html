@@ -5,86 +5,26 @@
 <title>🔑 Key Manager</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'Inter', -apple-system, sans-serif;
-    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-    color: #e2e8f0;
-    min-height: 100vh;
-    padding: 20px;
-  }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); color: #e2e8f0; min-height: 100vh; padding: 20px; }
   .container { max-width: 1200px; margin: 0 auto; }
-  .header {
-    text-align: center;
-    padding: 40px 0;
-    background: rgba(255,255,255,0.03);
-    border-radius: 20px;
-    border: 1px solid rgba(255,255,255,0.1);
-    margin-bottom: 30px;
-    backdrop-filter: blur(10px);
-  }
-  h1 {
-    font-size: 2.5rem;
-    background: linear-gradient(135deg, #667eea, #f093fb);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: 10px;
-  }
+  .header { text-align: center; padding: 40px 0; background: rgba(255,255,255,0.03); border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 30px; backdrop-filter: blur(10px); }
+  h1 { font-size: 2.5rem; background: linear-gradient(135deg, #667eea, #f093fb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px; }
   .subtitle { color: #94a3b8; font-size: 0.95rem; }
   .grid { display: grid; gap: 20px; }
   .grid-3 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
   .grid-2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
-  .card {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 16px;
-    padding: 24px;
-    backdrop-filter: blur(10px);
-    transition: transform 0.2s;
-  }
+  .card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 24px; backdrop-filter: blur(10px); transition: transform 0.2s; }
   .card:hover { transform: translateY(-2px); }
   .card h2 { font-size: 1.1rem; margin-bottom: 16px; color: #f1f5f9; }
-  input, button {
-    width: 100%;
-    padding: 12px 16px;
-    border-radius: 10px;
-    border: 1px solid rgba(255,255,255,0.15);
-    background: rgba(0,0,0,0.3);
-    color: #fff;
-    font-size: 0.95rem;
-    margin-bottom: 10px;
-    font-family: inherit;
-  }
+  input, button { width: 100%; padding: 12px 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); color: #fff; font-size: 0.95rem; margin-bottom: 10px; font-family: inherit; }
   input:focus { outline: none; border-color: #667eea; }
-  button {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    border: none;
-    cursor: pointer;
-    font-weight: 600;
-    transition: opacity 0.2s;
-  }
+  button { background: linear-gradient(135deg, #667eea, #764ba2); border: none; cursor: pointer; font-weight: 600; transition: opacity 0.2s; }
   button:hover { opacity: 0.9; }
   button.danger { background: linear-gradient(135deg, #ef4444, #b91c1c); width: auto; padding: 6px 12px; font-size: 0.75rem; margin: 0; }
   .stat { text-align: center; padding: 20px; }
-  .stat-value {
-    font-size: 2.5rem;
-    font-weight: 700;
-    background: linear-gradient(135deg, #667eea, #f093fb);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
+  .stat-value { font-size: 2.5rem; font-weight: 700; background: linear-gradient(135deg, #667eea, #f093fb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
   .stat-label { color: #94a3b8; font-size: 0.85rem; margin-top: 4px; }
-  .key-item {
-    background: rgba(0,0,0,0.3);
-    padding: 12px 16px;
-    border-radius: 10px;
-    margin-bottom: 8px;
-    font-family: 'Courier New', monospace;
-    font-size: 0.85rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-  }
+  .key-item { background: rgba(0,0,0,0.3); padding: 12px 16px; border-radius: 10px; margin-bottom: 8px; font-family: 'Courier New', monospace; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
   .badge { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; font-family: system-ui; }
   .badge.active { background: #10b98122; color: #10b981; }
   .badge.expired { background: #ef444422; color: #ef4444; }
@@ -107,8 +47,8 @@
 
   <div id="loginView" class="card" style="max-width: 400px; margin: 0 auto;">
     <h2>Đăng nhập Admin</h2>
-    <input id="username" placeholder="Username" value="admin">
-    <input id="password" type="password" placeholder="Password" value="Admin@123456">
+    <input id="username" placeholder="Username">
+    <input id="password" type="password" placeholder="Password">
     <button onclick="login()">Đăng nhập</button>
     <p id="loginError" style="color:#ef4444; margin-top:10px; font-size:0.85rem;"></p>
   </div>
@@ -153,9 +93,10 @@
 </div>
 
 <script>
-let token = localStorage.getItem('token');
-const API = '/api';
+// ĐỔI LINK NÀY THÀNH LINK RENDER CỦA BẠN
+const API = 'https://your-app.onrender.com/api'; 
 
+let token = localStorage.getItem('token');
 if (token) showDashboard();
 
 async function login() {
@@ -173,7 +114,7 @@ async function login() {
     localStorage.setItem('token', token);
     showDashboard();
   } else {
-    document.getElementById('loginError').textContent = data.detail || data.error;
+    document.getElementById('loginError').textContent = data.detail || data.error || "Lỗi kết nối!";
   }
 }
 
@@ -187,11 +128,7 @@ function showDashboard() {
 async function api(path, options = {}) {
   const res = await fetch(`${API}${path}`, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      ...options.headers
-    }
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, ...options.headers }
   });
   if (res.status === 401) {
     localStorage.removeItem('token');
@@ -207,7 +144,6 @@ async function loadStats() {
   document.getElementById('statActive').textContent = s.active;
   document.getElementById('statUsed').textContent = s.used;
   document.getElementById('statLogs').textContent = s.logs;
-
   document.getElementById('logList').innerHTML = s.recentLogs.map(l => `
     <div class="log-item ${l.success ? 'ok' : 'fail'}">
       <strong>${l.success ? '✅' : '❌'}</strong> ${l.action} — ${l.key_value || 'N/A'} — ${l.ip} — ${new Date(l.created_at + 'Z').toLocaleString('vi')}
