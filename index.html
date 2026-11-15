@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>🔑 Key Manager</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    color: #e2e8f0;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .container { max-width: 1200px; margin: 0 auto; }
+  .header {
+    text-align: center;
+    padding: 40px 0;
+    background: rgba(255,255,255,0.03);
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.1);
+    margin-bottom: 30px;
+    backdrop-filter: blur(10px);
+  }
+  h1 {
+    font-size: 2.5rem;
+    background: linear-gradient(135deg, #667eea, #f093fb);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 10px;
+  }
+  .subtitle { color: #94a3b8; font-size: 0.95rem; }
+  .grid { display: grid; gap: 20px; }
+  .grid-3 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .grid-2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+  .card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    padding: 24px;
+    backdrop-filter: blur(10px);
+    transition: transform 0.2s;
+  }
+  .card:hover { transform: translateY(-2px); }
+  .card h2 { font-size: 1.1rem; margin-bottom: 16px; color: #f1f5f9; }
+  input, button {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(0,0,0,0.3);
+    color: #fff;
+    font-size: 0.95rem;
+    margin-bottom: 10px;
+    font-family: inherit;
+  }
+  input:focus { outline: none; border-color: #667eea; }
+  button {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    transition: opacity 0.2s;
+  }
+  button:hover { opacity: 0.9; }
+  button.danger { background: linear-gradient(135deg, #ef4444, #b91c1c); width: auto; padding: 6px 12px; font-size: 0.75rem; margin: 0; }
+  .stat { text-align: center; padding: 20px; }
+  .stat-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #667eea, #f093fb);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .stat-label { color: #94a3b8; font-size: 0.85rem; margin-top: 4px; }
+  .key-item {
+    background: rgba(0,0,0,0.3);
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+  .badge { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; font-family: system-ui; }
+  .badge.active { background: #10b98122; color: #10b981; }
+  .badge.expired { background: #ef444422; color: #ef4444; }
+  .badge.locked { background: #f59e0b22; color: #f59e0b; }
+  .hidden { display: none !important; }
+  .row { display: flex; gap: 10px; }
+  .row > * { flex: 1; }
+  .logs { max-height: 300px; overflow-y: auto; }
+  .log-item { padding: 8px 12px; border-left: 3px solid; margin-bottom: 6px; font-size: 0.8rem; background: rgba(0,0,0,0.2); border-radius: 6px; }
+  .log-item.ok { border-color: #10b981; }
+  .log-item.fail { border-color: #ef4444; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🔑 Key Manager</h1>
+    <p class="subtitle">Python · FastAPI · SQLite</p>
+  </div>
+
+  <div id="loginView" class="card" style="max-width: 400px; margin: 0 auto;">
+    <h2>Đăng nhập Admin</h2>
+    <input id="username" placeholder="Username" value="admin">
+    <input id="password" type="password" placeholder="Password" value="Admin@123456">
+    <button onclick="login()">Đăng nhập</button>
+    <p id="loginError" style="color:#ef4444; margin-top:10px; font-size:0.85rem;"></p>
+  </div>
+
+  <div id="dashView" class="hidden">
+    <div class="grid grid-3" style="margin-bottom: 20px;">
+      <div class="card stat"><div class="stat-value" id="statTotal">0</div><div class="stat-label">Tổng Keys</div></div>
+      <div class="card stat"><div class="stat-value" id="statActive">0</div><div class="stat-label">Đang hoạt động</div></div>
+      <div class="card stat"><div class="stat-value" id="statUsed">0</div><div class="stat-label">Đã sử dụng</div></div>
+      <div class="card stat"><div class="stat-value" id="statLogs">0</div><div class="stat-label">Lượt xác thực</div></div>
+    </div>
+
+    <div class="grid grid-2" style="margin-bottom: 20px;">
+      <div class="card">
+        <h2>➕ Tạo Keys</h2>
+        <div class="row">
+          <input id="genCount" type="number" placeholder="Số lượng" value="5">
+          <input id="genDays" type="number" placeholder="Số ngày" value="30">
+        </div>
+        <input id="genPrefix" placeholder="Prefix" value="KEY">
+        <button onclick="generateKeys()">Tạo Keys</button>
+        <div id="genResult" style="margin-top: 12px; font-size: 0.85rem;"></div>
+      </div>
+
+      <div class="card">
+        <h2>🔍 Tìm kiếm Key</h2>
+        <input id="searchKey" placeholder="Nhập key cần tìm..." oninput="loadKeys()">
+        <button onclick="loadKeys()">Tìm</button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 20px;">
+      <h2>📋 Danh sách Keys</h2>
+      <div id="keyList" style="max-height: 500px; overflow-y: auto;"></div>
+    </div>
+
+    <div class="card">
+      <h2>📊 Logs gần đây</h2>
+      <div id="logList" class="logs"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let token = localStorage.getItem('token');
+const API = '/api';
+
+if (token) showDashboard();
+
+async function login() {
+  const res = await fetch(`${API}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      username: document.getElementById('username').value,
+      password: document.getElementById('password').value
+    })
+  });
+  const data = await res.json();
+  if (data.token) {
+    token = data.token;
+    localStorage.setItem('token', token);
+    showDashboard();
+  } else {
+    document.getElementById('loginError').textContent = data.detail || data.error;
+  }
+}
+
+function showDashboard() {
+  document.getElementById('loginView').classList.add('hidden');
+  document.getElementById('dashView').classList.remove('hidden');
+  loadStats();
+  loadKeys();
+}
+
+async function api(path, options = {}) {
+  const res = await fetch(`${API}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      ...options.headers
+    }
+  });
+  if (res.status === 401) {
+    localStorage.removeItem('token');
+    location.reload();
+    return;
+  }
+  return res.json();
+}
+
+async function loadStats() {
+  const s = await api('/admin/stats');
+  document.getElementById('statTotal').textContent = s.total;
+  document.getElementById('statActive').textContent = s.active;
+  document.getElementById('statUsed').textContent = s.used;
+  document.getElementById('statLogs').textContent = s.logs;
+
+  document.getElementById('logList').innerHTML = s.recentLogs.map(l => `
+    <div class="log-item ${l.success ? 'ok' : 'fail'}">
+      <strong>${l.success ? '✅' : '❌'}</strong> ${l.action} — ${l.key_value || 'N/A'} — ${l.ip} — ${new Date(l.created_at + 'Z').toLocaleString('vi')}
+    </div>
+  `).join('') || '<p style="color:#64748b; font-size:0.85rem;">Chưa có log</p>';
+}
+
+async function loadKeys() {
+  const q = document.getElementById('searchKey').value;
+  const keys = await api(`/admin/keys?q=${encodeURIComponent(q)}`);
+  document.getElementById('keyList').innerHTML = keys.map(k => `
+    <div class="key-item">
+      <span>${k.key_value}</span>
+      <span class="badge ${k.status}">${k.status}</span>
+      <span style="color:#94a3b8; font-size:0.75rem;">${k.duration_days}d</span>
+      <button class="danger" onclick="deleteKey(${k.id})">X</button>
+    </div>
+  `).join('') || '<p style="color:#64748b;">Không có key nào</p>';
+}
+
+async function generateKeys() {
+  const count = +document.getElementById('genCount').value;
+  const days = +document.getElementById('genDays').value;
+  const prefix = document.getElementById('genPrefix').value;
+  const res = await api('/admin/keys', {
+    method: 'POST',
+    body: JSON.stringify({ count, duration_days: days, prefix })
+  });
+  document.getElementById('genResult').innerHTML =
+    `<p style="color:#10b981;">✅ Đã tạo ${res.count} keys</p>` +
+    res.keys.map(k => `<div style="font-family:monospace; color:#a78bfa; padding:2px 0;">${k}</div>`).join('');
+  loadStats();
+  loadKeys();
+}
+
+async function deleteKey(id) {
+  if (!confirm('Xóa key này?')) return;
+  await api(`/admin/keys/${id}`, { method: 'DELETE' });
+  loadKeys();
+  loadStats();
+}
+</script>
+</body>
+</html>
