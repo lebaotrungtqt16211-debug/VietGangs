@@ -1,6 +1,6 @@
 import sqlite3
 from contextlib import contextmanager
-from passlib.hash import bcrypt
+import bcrypt
 import os
 from dotenv import load_dotenv
 
@@ -27,7 +27,6 @@ def init_db():
                 role TEXT DEFAULT 'user',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
-
             CREATE TABLE IF NOT EXISTS keys (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 key_value TEXT UNIQUE NOT NULL,
@@ -40,7 +39,6 @@ def init_db():
                 created_by INTEGER,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
-
             CREATE TABLE IF NOT EXISTS logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 key_value TEXT,
@@ -52,16 +50,10 @@ def init_db():
             );
         """)
 
-        # Tạo admin mặc định
         admin_user = os.getenv("ADMIN_USER", "admin")
         admin_pass = os.getenv("ADMIN_PASS", "Admin@123456")
-        existing = conn.execute(
-            "SELECT id FROM users WHERE username = ?", (admin_user,)
-        ).fetchone()
+        existing = conn.execute("SELECT id FROM users WHERE username = ?", (admin_user,)).fetchone()
         if not existing:
-            hashed = bcrypt.hash(admin_pass)
-            conn.execute(
-                "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
-                (admin_user, hashed, "admin"),
-            )
+            hashed = bcrypt.hashpw(admin_pass.encode(), bcrypt.gensalt()).decode()
+            conn.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", (admin_user, hashed, "admin"))
             print(f"✅ Admin created: {admin_user}")
