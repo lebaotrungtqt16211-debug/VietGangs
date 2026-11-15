@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from passlib.hash import bcrypt
+import bcrypt
 from dotenv import load_dotenv
 
 from database import get_db, init_db
@@ -25,7 +25,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ============ SCHEMAS ============
 class LoginReq(BaseModel):
     username: str
     password: str
@@ -43,44 +42,32 @@ class GenerateReq(BaseModel):
 class UpdateKeyReq(BaseModel):
     status: str
 
-# ============ STARTUP ============
 @app.on_event("startup")
 def startup():
     init_db()
 
-# ============ HEALTH ============
 @app.get("/health")
 def health():
     return {"status": "ok", "time": datetime.utcnow().isoformat()}
 
-# ============ AUTH ============
 @app.post("/api/auth/login", tags=["Auth"])
 def login(body: LoginReq):
     with get_db() as db:
-        user = db.execute(
-            "SELECT * FROM users WHERE username = ?", (body.username,)
-        ).fetchone()
+        user = db.execute("SELECT * FROM users WHERE username = ?", (body.username,)).fetchone()
 
-    if not user or not bcrypt.verify(body.password, user["password"]):
+    if not user or not bcrypt.checkpw(body.password.encode(), user["password"].encode()):
         raise HTTPException(401, "Sai tài khoản hoặc mật khẩu")
 
-    token = create_token({
-        "id": user["id"],
-        "username": user["username"],
-        "role": user["role"],
-    })
+    token = create_token({"id": user["id"], "username": user["username"], "role": user["role"]})
     return {"token": token, "user": {"username": user["username"], "role": user["role"]}}
 
-# ============ VERIFY KEY (client gọi) ============
 @app.post("/api/auth/verify", tags=["Auth"])
 def verify_key(body: VerifyReq, request: Request):
     ip = request.client.host if request.client else "unknown"
     ua = request.headers.get("user-agent", "")
 
     with get_db() as db:
-        record = db.execute(
-            "SELECT * FROM keys WHERE key_value = ?", (body.key,)
-        ).fetchone()
+        record = db.execute("SELECT * FROM keys WHERE key_value = ?", (body.key,)).fetchone()
 
         def log(success: bool):
             db.execute(
@@ -106,7 +93,6 @@ def verify_key(body: VerifyReq, request: Request):
             log(False)
             return JSONResponse({"valid": False, "message": "Key đã hết hạn"}, 403)
 
-        # Kích hoạt lần đầu
         if not expires_at:
             expires = datetime.utcnow() + timedelta(days=record["duration_days"])
             expires_at = expires.isoformat()
@@ -123,7 +109,6 @@ def verify_key(body: VerifyReq, request: Request):
             "duration_days": record["duration_days"],
         }
 
-# ============ ADMIN: GENERATE KEYS ============
 @app.post("/api/admin/keys", tags=["Admin"])
 def generate_keys(body: GenerateReq, user: dict = Depends(admin_middleware)):
     created = []
@@ -143,14 +128,8 @@ def generate_keys(body: GenerateReq, user: dict = Depends(admin_middleware)):
                 continue
     return {"success": True, "keys": created, "count": len(created)}
 
-# ============ ADMIN: LIST KEYS ============
 @app.get("/api/admin/keys", tags=["Admin"])
-def list_keys(
-    status: Optional[str] = None,
-    q: Optional[str] = None,
-    limit: int = Query(default=100, le=500),
-    user: dict = Depends(admin_middleware),
-):
+def list_keys(status: Optional[str] = None, q: Optional[str] = None, limit: int = Query(default=100, le=500), user: dict = Depends(admin_middleware)):
     sql = "SELECT * FROM keys WHERE 1=1"
     params = []
     if status:
@@ -166,7 +145,6 @@ def list_keys(
         rows = db.execute(sql, params).fetchall()
     return [dict(r) for r in rows]
 
-# ============ ADMIN: UPDATE KEY ============
 @app.patch("/api/admin/keys/{key_id}", tags=["Admin"])
 def update_key(key_id: int, body: UpdateKeyReq, user: dict = Depends(admin_middleware)):
     with get_db() as db:
@@ -179,7 +157,6 @@ def delete_key(key_id: int, user: dict = Depends(admin_middleware)):
         db.execute("DELETE FROM keys WHERE id=?", (key_id,))
     return {"success": True}
 
-# ============ ADMIN: STATS ============
 @app.get("/api/admin/stats", tags=["Admin"])
 def stats(user: dict = Depends(admin_middleware)):
     with get_db() as db:
@@ -187,24 +164,14 @@ def stats(user: dict = Depends(admin_middleware)):
         active = db.execute("SELECT COUNT(*) c FROM keys WHERE status='active'").fetchone()["c"]
         used = db.execute("SELECT COUNT(*) c FROM keys WHERE used_count > 0").fetchone()["c"]
         logs = db.execute("SELECT COUNT(*) c FROM logs").fetchone()["c"]
-        recent_logs = db.execute(
-            "SELECT * FROM logs ORDER BY id DESC LIMIT 20"
-        ).fetchall()
+        recent_logs = db.execute("SELECT * FROM logs ORDER BY id DESC LIMIT 20").fetchall()
 
-    return {
-        "total": total,
-        "active": active,
-        "used": used,
-        "logs": logs,
-        "recentLogs": [dict(l) for l in recent_logs],
-    }
+    return {"total": total, "active": active, "used": used, "logs": logs, "recentLogs": [dict(l) for l in recent_logs]}
 
-# ============ SERVE DASHBOARD ============
 @app.get("/")
 def index():
     return FileResponse("static/index.html")
 
-# Mount static (đặt cuối)
 if os.path.isdir("static"):
     app.mount("/static", StaticFiles(directory="static"), name="static")
 
